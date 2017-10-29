@@ -89,10 +89,47 @@ void convertBitmapToArray2d(JNIEnv *env, jobject bitmap, dlib::array2d<dlib::rgb
     AndroidBitmap_unlockPixels(env, bitmap);
 }
 
+long jStringToLong(JNIEnv *env, jstring str){
+    const char *resultStr = env->GetStringUTFChars(str, JNI_FALSE);
+    return std::stol(resultStr);
+}
+
+std::vector<matrix<float, 0, 1>> convertJavaFaceEncodeToDlibVectorMatrix(JNIEnv *env,
+                                                                         jobjectArray encode){
+    std::vector<matrix<float, 0, 1>> result;
+    matrix<float, 0, 1> m_matrix ;
+
+    jobjectArray firstSettingItem = (jobjectArray) env->GetObjectArrayElement(encode, 0);
+
+    long nr = jStringToLong(env, (jstring) env->GetObjectArrayElement(firstSettingItem, 0));
+    long nc = jStringToLong(env, (jstring) env->GetObjectArrayElement(firstSettingItem, 1));
+    m_matrix.set_size(nr,nc);
+
+    LOGI("L%d: nr=%d, nc=%d", __LINE__, nr, nc);
+
+    long encodeSize = (long) env->GetArrayLength(encode);
+
+    for (long index = 1; index < encodeSize; ++index) {
+        jobjectArray element = (jobjectArray) env->GetObjectArrayElement(encode, index);
+
+        long iNr = jStringToLong(env, (jstring) env->GetObjectArrayElement(element, 0));
+        long iNc = jStringToLong(env, (jstring) env->GetObjectArrayElement(element, 1));
+        long iValue = jStringToLong(env, (jstring) env->GetObjectArrayElement(element, 2));
+
+        LOGI("L%d: iNr=%d, iNc=%d, iValue=%d", __LINE__, iNr, iNc, iValue);
+
+        m_matrix(iNr, iNc) = iValue;
+    }
+
+    result.push_back(m_matrix);
+    return result;
+}
+
 // JNI ////////////////////////////////////////////////////////////////////////
 
 dlib::shape_predictor sFaceLandmarksDetector;
 anet_type sFaceRecognition;
+std::vector<std::pair<std::string, std::vector<matrix<float, 0, 1>>>> knowFaces;
 
 extern "C" JNIEXPORT jboolean JNICALL
 JNI_METHOD(isFaceLandmarksDetectorReady)(JNIEnv *env, jobject thiz) {
@@ -101,6 +138,29 @@ JNI_METHOD(isFaceLandmarksDetectorReady)(JNIEnv *env, jobject thiz) {
     } else {
         return JNI_FALSE;
     }
+}
+
+extern "C" JNIEXPORT void JNICALL
+JNI_METHOD(prepareUserFaces)(JNIEnv *env,
+                             jobject thiz,
+                             jstring userName,
+                             jobjectArray faceEncode) {
+    const char *name = env->GetStringUTFChars(userName, JNI_FALSE);
+    for (long index = 0; index < knowFaces.size(); ++index) {
+        std::pair<std::string, std::vector<matrix<float, 0, 1>>> item = knowFaces[index];
+        if (item.first == name){
+            item.second = convertJavaFaceEncodeToDlibVectorMatrix(env, faceEncode);
+            return;
+        }
+    }
+
+
+    std::pair<std::string, std::vector<matrix<float, 0, 1>>> newItem;
+    newItem.first = name;
+    newItem.second = convertJavaFaceEncodeToDlibVectorMatrix(env, faceEncode);
+    knowFaces.push_back(newItem);
+
+    env->ReleaseStringUTFChars(userName, name);
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -176,8 +236,7 @@ JNI_METHOD(recognitionFace)(JNIEnv *env,
     matrix<float, 0, 1> item = face_descriptors[0];
     for (long r = 0; r < item.nr(); ++r) {
         for (long c = 0; c < item.nc(); ++c) {
-            mFaceRecogResult.push_back("i," +
-                                       std::to_string(r) + "," + std::to_string(c) + "," + std::to_string(item(r, c)));
+            mFaceRecogResult.push_back(std::to_string(r) + "," + std::to_string(c) + "," + std::to_string(item(r, c)));
         }
     }
 
@@ -186,7 +245,7 @@ JNI_METHOD(recognitionFace)(JNIEnv *env,
                                                       env->FindClass("java/lang/String"),
                                                       env->NewStringUTF(""));
 
-    std::string mFaceHeader = "h," + std::to_string(item.nr()) + "," + std::to_string(item.nc());
+    std::string mFaceHeader = std::to_string(item.nr()) + "," + std::to_string(item.nc());
     env->SetObjectArrayElement(mResultArray, 0, env->NewStringUTF(mFaceHeader.c_str()));
     for (long i = 0; i < mFaceRecogResult.size(); i++) {
         env->SetObjectArrayElement(mResultArray, i + 1, env->NewStringUTF(mFaceRecogResult[i].c_str()));

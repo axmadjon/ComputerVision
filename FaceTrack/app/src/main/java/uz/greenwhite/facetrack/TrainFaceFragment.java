@@ -183,7 +183,7 @@ public class TrainFaceFragment extends MoldContentFragment implements ICameraMet
                                 }
                             });
 
-                            users = users.append(new UserFace(found.name, found.faceEncodes.append(MyArray.from(results))));
+                            users = users.append(new UserFace(found.name, MyArray.from(results)));
 
                             pref.save(FaceApp.PREF_USERS, users, UserFace.UZUM_ADAPTER.toArray());
                             Mold.makeSnackBar(getActivity(), "Success add new FaceEncode").show();

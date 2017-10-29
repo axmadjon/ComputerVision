@@ -72,7 +72,7 @@ public class CreateUserFaceDialog extends MoldDialogFragment {
             return;
         }
 
-        userFaces = userFaces.append(new UserFace(userName, MyArray.<MyArray<String>>emptyArray()));
+        userFaces = userFaces.append(new UserFace(userName, MyArray.<String>emptyArray()));
 
         pref.save(FaceApp.PREF_USERS, Uzum.toJson(userFaces, UserFace.UZUM_ADAPTER.toArray()));
 

@@ -8,7 +8,7 @@ import uz.greenwhite.lib.uzum.UzumAdapter;
 
 public class Pref {
 
-    private static final String PREF_NAME = "uz.greenwhite.face_time.FACE_ENCODE";
+    private static final String PREF_NAME = "uz.greenwhite.face_time.FACE_ENCODE_v2";
 
     private final SharedPreferences sp;
 

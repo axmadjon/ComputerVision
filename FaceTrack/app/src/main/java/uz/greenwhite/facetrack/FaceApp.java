@@ -7,7 +7,7 @@ import uz.greenwhite.lib.mold.MoldApplication;
 
 public class FaceApp extends MoldApplication {
 
-    public static final String PREF_USERS = "users";
+    public static final String PREF_USERS = "users_v2";
 
     @Override
     public void onCreate() {

@@ -10,14 +10,25 @@ import uz.greenwhite.lib.uzum.UzumWriter;
 public class UserFace {
 
     public final String name;
-    public final MyArray<MyArray<String>> faceEncodes;
+    public final MyArray<String> faceEncodes;
 
-    public UserFace(String name, MyArray<MyArray<String>> faceEncodes) {
+    public UserFace(String name, MyArray<String> faceEncodes) {
         this.name = name;
         this.faceEncodes = faceEncodes;
     }
 
-    public static final UserFace EMPTY = new UserFace("", MyArray.<MyArray<String>>emptyArray());
+    public String[][] getFaceEncodeToLong() {
+        String[][] result = new String[faceEncodes.size()][3];
+        for (int i = 0; i < faceEncodes.size(); i++) {
+            String val = faceEncodes.get(i);
+            String[] split = val.split(",");
+            result[i] = new String[]{split[0], split[1], split.length == 3 ? split[2] : ""};
+
+        }
+        return result;
+    }
+
+    public static final UserFace EMPTY = new UserFace("", MyArray.<String>emptyArray());
 
     public static final MyMapper<UserFace, String> KEY_ADAPTER = new MyMapper<UserFace, String>() {
         @Override
@@ -29,7 +40,7 @@ public class UserFace {
     public static final UzumAdapter<UserFace> UZUM_ADAPTER = new UzumAdapter<UserFace>() {
         @Override
         public UserFace read(UzumReader in) {
-            return new UserFace(in.readString(), in.readArray(STRING_ARRAY));
+            return new UserFace(in.readString(), in.readValue(STRING_ARRAY));
         }
 
         @Override

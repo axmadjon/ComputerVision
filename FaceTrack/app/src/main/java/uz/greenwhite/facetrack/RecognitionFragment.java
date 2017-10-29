@@ -17,11 +17,14 @@ import com.my.jni.dlib.DLibLandmarks68Detector;
 import java.io.IOException;
 
 import uz.greenwhite.facetrack.arg.ArgRecognition;
+import uz.greenwhite.facetrack.bean.UserFace;
 import uz.greenwhite.facetrack.common.CameraSourcePreview;
 import uz.greenwhite.facetrack.common.FaceOverlayView;
 import uz.greenwhite.facetrack.common.ICameraMetadata;
 import uz.greenwhite.facetrack.common.RecognitionVisionFaceDetector;
 import uz.greenwhite.facetrack.common.VisionFaceDetector;
+import uz.greenwhite.facetrack.ds.Pref;
+import uz.greenwhite.lib.collection.MyArray;
 import uz.greenwhite.lib.job.JobMate;
 import uz.greenwhite.lib.job.Promise;
 import uz.greenwhite.lib.job.ShortJob;
@@ -80,7 +83,7 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
                 .build();
 
         if (dlibDetector == null) {
-            jobMate.execute(new ShortJob<DLibLandmarks68Detector>() {
+            jobMate.executeWithDialog(getActivity(), new ShortJob<DLibLandmarks68Detector>() {
                 @Override
                 public DLibLandmarks68Detector execute() throws Exception {
                     try {
@@ -91,6 +94,7 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
                         if (dlibDetector.isFaceLandmarksDetectorReady()) {
                             return dlibDetector;
                         }
+
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -99,6 +103,8 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
             }).done(new Promise.OnDone<DLibLandmarks68Detector>() {
                 @Override
                 public void onDone(DLibLandmarks68Detector dLibLandmarks68Detector) {
+                    initUserFaces(dLibLandmarks68Detector);
+
                     RecognitionFragment.this.dlibDetector = dLibLandmarks68Detector;
                     RecognitionFragment.this.visionFaceDetector.setDLibDetector(dlibDetector);
                 }
@@ -108,6 +114,16 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
                     UI.alertError(getActivity(), throwable);
                 }
             });
+        }
+    }
+
+    private void initUserFaces(DLibLandmarks68Detector dLibLandmarks68Detector) {
+        Pref pref = new Pref(getActivity());
+        MyArray<UserFace> users = MyArray.nvl(pref.load(FaceApp.PREF_USERS, UserFace.UZUM_ADAPTER.toArray()));
+        for (UserFace val : users) {
+            if (val.faceEncodes.nonEmpty()) {
+                dLibLandmarks68Detector.prepareUserFaces(val.name, val.getFaceEncodeToLong());
+            }
         }
     }
 

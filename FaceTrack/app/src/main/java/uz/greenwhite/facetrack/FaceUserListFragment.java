@@ -12,6 +12,7 @@ import uz.greenwhite.lib.collection.MyArray;
 import uz.greenwhite.lib.mold.Mold;
 import uz.greenwhite.lib.mold.MoldContentRecyclerFragment;
 import uz.greenwhite.lib.mold.RecyclerAdapter;
+import uz.greenwhite.lib.view_setup.UI;
 import uz.greenwhite.lib.view_setup.ViewSetup;
 
 public class FaceUserListFragment extends MoldContentRecyclerFragment<UserFace> {
@@ -40,7 +41,11 @@ public class FaceUserListFragment extends MoldContentRecyclerFragment<UserFace> 
 
     @Override
     protected void onItemClick(RecyclerAdapter.ViewHolder holder, UserFace item) {
-        TrainFaceFragment.open(getActivity(), new ArgRecognition(item, ArgRecognition.NEW_USER));
+        if (item.faceEncodes.nonEmpty()) {
+            UI.alertError(getActivity(), "You can train only one Face!");
+        } else {
+            TrainFaceFragment.open(getActivity(), new ArgRecognition(item, ArgRecognition.NEW_USER));
+        }
     }
 
     @Override

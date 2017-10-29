@@ -59,6 +59,8 @@ public class DLibLandmarks68Detector {
 
     public native boolean isFaceLandmarksDetectorReady();
 
+    public native void prepareUserFaces(String userName, String[][] encode);
+
     public native void prepareLandmark(String path);
 
     public native void prepareRecognition(String path);
