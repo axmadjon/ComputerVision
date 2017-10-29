@@ -91,45 +91,49 @@ void convertBitmapToArray2d(JNIEnv *env, jobject bitmap, dlib::array2d<dlib::rgb
 
 long jStringToLong(JNIEnv *env, jstring str){
     const char *resultStr = env->GetStringUTFChars(str, JNI_FALSE);
-    return std::stol(resultStr);
+    long result = std::stol(resultStr);
+    env->ReleaseStringUTFChars(str, resultStr);
+    return result;
 }
 
-std::vector<matrix<float, 0, 1>> convertJavaFaceEncodeToDlibVectorMatrix(JNIEnv *env,
-                                                                         jobjectArray encode){
-    std::vector<matrix<float, 0, 1>> result;
-    matrix<float, 0, 1> m_matrix ;
+float jStringToFloat(JNIEnv *env, jstring str){
+    const char *resultStr = env->GetStringUTFChars(str, JNI_FALSE);
+    float result = std::stof(resultStr);
+    env->ReleaseStringUTFChars(str, resultStr);
+    return result;
+}
 
+void convertJavaFaceEncodeToDlibVectorMatrix(JNIEnv *env,
+                                             jobjectArray encode,
+                                             std::vector<matrix<float, 0, 1>>  &out){
+    long encodeSize = (long) env->GetArrayLength(encode);
     jobjectArray firstSettingItem = (jobjectArray) env->GetObjectArrayElement(encode, 0);
 
     long nr = jStringToLong(env, (jstring) env->GetObjectArrayElement(firstSettingItem, 0));
     long nc = jStringToLong(env, (jstring) env->GetObjectArrayElement(firstSettingItem, 1));
-    m_matrix.set_size(nr,nc);
 
-    LOGI("L%d: nr=%d, nc=%d", __LINE__, nr, nc);
-
-    long encodeSize = (long) env->GetArrayLength(encode);
-
+    matrix<float, 0, 1> m_matrix;
+    m_matrix.set_size(nr, nc);
     for (long index = 1; index < encodeSize; ++index) {
         jobjectArray element = (jobjectArray) env->GetObjectArrayElement(encode, index);
 
         long iNr = jStringToLong(env, (jstring) env->GetObjectArrayElement(element, 0));
         long iNc = jStringToLong(env, (jstring) env->GetObjectArrayElement(element, 1));
-        long iValue = jStringToLong(env, (jstring) env->GetObjectArrayElement(element, 2));
-
-        LOGI("L%d: iNr=%d, iNc=%d, iValue=%d", __LINE__, iNr, iNc, iValue);
+        float iValue = jStringToFloat(env, (jstring) env->GetObjectArrayElement(element, 2));
 
         m_matrix(iNr, iNc) = iValue;
-    }
 
-    result.push_back(m_matrix);
-    return result;
+        env->DeleteLocalRef(element);
+    }
+    out.push_back(m_matrix);
+    env->DeleteLocalRef(firstSettingItem);
 }
 
 // JNI ////////////////////////////////////////////////////////////////////////
 
 dlib::shape_predictor sFaceLandmarksDetector;
 anet_type sFaceRecognition;
-std::vector<std::pair<std::string, std::vector<matrix<float, 0, 1>>>> knowFaces;
+std::vector<std::pair<string, std::vector<matrix<float, 0, 1>>>> knowFaces;
 
 extern "C" JNIEXPORT jboolean JNICALL
 JNI_METHOD(isFaceLandmarksDetectorReady)(JNIEnv *env, jobject thiz) {
@@ -146,21 +150,25 @@ JNI_METHOD(prepareUserFaces)(JNIEnv *env,
                              jstring userName,
                              jobjectArray faceEncode) {
     const char *name = env->GetStringUTFChars(userName, JNI_FALSE);
+
+    LOGI("L%d: search in knowFaces loop start", __LINE__);
     for (long index = 0; index < knowFaces.size(); ++index) {
-        std::pair<std::string, std::vector<matrix<float, 0, 1>>> item = knowFaces[index];
-        if (item.first == name){
-            item.second = convertJavaFaceEncodeToDlibVectorMatrix(env, faceEncode);
+        std::pair<string, std::vector<matrix<float, 0, 1>>> item = knowFaces[index];
+        if (item.first.c_str() == name){
+            convertJavaFaceEncodeToDlibVectorMatrix(env, faceEncode, item.second);
             return;
         }
     }
 
-
     std::pair<std::string, std::vector<matrix<float, 0, 1>>> newItem;
-    newItem.first = name;
-    newItem.second = convertJavaFaceEncodeToDlibVectorMatrix(env, faceEncode);
+    string str(name);
+    newItem.first = str;
+    convertJavaFaceEncodeToDlibVectorMatrix(env, faceEncode, newItem.second);
+
     knowFaces.push_back(newItem);
 
     env->ReleaseStringUTFChars(userName, name);
+
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -199,10 +207,32 @@ JNI_METHOD(recognitionContains)(JNIEnv *env,
 
     std::vector<matrix<float, 0, 1>> face_descriptors = sFaceRecognition(mrFaces);
 
-    if (face_descriptors.size() != 1) {
-        return env->NewStringUTF("-1");
+    if (face_descriptors.size() > 0) {
+        LOGI("L%d: face_descriptors.size=%d, knowFaces.size=%d", __LINE__,
+             face_descriptors.size(), knowFaces.size());
+
+        for (long r = 0; r < knowFaces.size(); ++r) {
+            std::pair<string, std::vector<matrix<float, 0, 1>>> pairItem = knowFaces[r];
+
+            for ( long i1 = 0; i1 < pairItem.second.size(); ++i1){
+                for ( long i2 = 0; i2 < face_descriptors.size(); ++i2){
+
+                    LOGI("L%d: i1=%d, i2=%d", __LINE__, i1, i2);
+
+                    if (length(pairItem.second[i1] - face_descriptors[i2]) <= 0.6){
+                        LOGI("L%d: FOUND", __LINE__);
+                        return env->NewStringUTF(pairItem.first.c_str());
+
+                    }else{
+                        LOGI("L%d: NOT FOUND", __LINE__);
+                    }
+                }
+            }
+        }
+    }else{
+        LOGI("L%d: face_descriptors.size=%d", __LINE__, face_descriptors.size());
     }
-    return env->NewStringUTF("1");
+    return env->NewStringUTF("-1");
 }
 
 

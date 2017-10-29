@@ -50,7 +50,7 @@ public class TrainVisionFaceDetector extends VisionFaceDetector {
 
         final Rect bound = getFaceBound(face, ow);
 
-        MyFace myFace = new MyFace(face, bound);
+        MyFace myFace = new MyFace(face, bound, "");
         mDetFaces.put(0, myFace);
 
         if (clickUserFace && onFaceListener != null) {

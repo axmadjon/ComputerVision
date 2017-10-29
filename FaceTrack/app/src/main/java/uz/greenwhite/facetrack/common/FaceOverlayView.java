@@ -6,6 +6,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.AppCompatImageView;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 
 import java.util.List;
@@ -90,14 +91,19 @@ public class FaceOverlayView extends AppCompatImageView {
         for (MyFace face : mFaces) {
             canvas.drawRect(face.mBound, mStrokePaint);
 
+            String userName = TextUtils.isEmpty(face.userName) ? "recognition" :
+                    ("-1".equals(face.userName) ? "NotFound" : face.userName);
+            canvas.drawText("user: " + userName,
+                    face.mBound.left, face.mBound.bottom + 10, mIdPaint);
+
             canvas.drawText("id: " + face.face.getId(),
-                    face.mBound.left, face.mBound.bottom+10, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 20, mIdPaint);
             canvas.drawText("happiness: " + String.format("%.2f", face.face.getIsSmilingProbability()),
-                    face.mBound.left, face.mBound.bottom+20, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 30, mIdPaint);
             canvas.drawText("right eye: " + String.format("%.2f", face.face.getIsRightEyeOpenProbability()),
-                    face.mBound.left, face.mBound.bottom+30, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 40, mIdPaint);
             canvas.drawText("left eye: " + String.format("%.2f", face.face.getIsLeftEyeOpenProbability()),
-                    face.mBound.left, face.mBound.bottom+40, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 50, mIdPaint);
 
 //            face.println();
         }

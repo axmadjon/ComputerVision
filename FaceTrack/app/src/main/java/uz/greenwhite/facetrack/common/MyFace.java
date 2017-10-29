@@ -8,10 +8,12 @@ public class MyFace {
 
     public final Face face;
     public final Rect mBound;
+    public final String userName;
 
-    public MyFace(Face face, Rect bound) {
+    public MyFace(Face face, Rect bound, String userName) {
         this.face = face;
         this.mBound = bound;
+        this.userName = userName;
     }
 
     protected void println() {
