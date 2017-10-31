@@ -11,6 +11,8 @@ import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 import uz.greenwhite.lib.job.JobApi;
 import uz.greenwhite.lib.job.Promise;
@@ -21,12 +23,14 @@ import uz.greenwhite.lib.util.Util;
 public class RecognitionVisionFaceDetector extends VisionFaceDetector {
 
     public volatile HashMap<String, String> userFaces = new HashMap<>();
+    private final int supportThread;
 
     public RecognitionVisionFaceDetector(ICameraMetadata mCameraMetadata,
                                          Detector<Face> faceDetector,
                                          FaceOverlayView overlayView) {
         super(mCameraMetadata, faceDetector, overlayView);
         userFaces.clear();
+        this.supportThread = Runtime.getRuntime().availableProcessors();
     }
 
 
@@ -58,17 +62,21 @@ public class RecognitionVisionFaceDetector extends VisionFaceDetector {
 
     private static final Object mLock = new Object();
     private static volatile boolean mRecognitionLock = false;
+    public static int startProcessor = 0;
+    public volatile Set<String> processFaceIds = new HashSet<>();
 
     private void startRecognition(final Bitmap bitmap, final MyFace myFace) {
         if (userFaces.containsKey("" + myFace.face.getId())) return;
 
         if (this.dLibDetector != null) {
-            if (mRecognitionLock) return;
+            if (startProcessor >= supportThread ||
+                    mRecognitionLock) return;
 
             synchronized (mLock) {
                 if (mRecognitionLock) return;
 
                 mRecognitionLock = true;
+                startProcessor++;
                 System.out.println("start:recognitionFaceInBitmapRect");
                 Manager.handler.post(new Runnable() {
                     @Override
@@ -88,6 +96,11 @@ public class RecognitionVisionFaceDetector extends VisionFaceDetector {
                             @Override
                             public void onDone(Pair<Face, String> result) {
                                 userFaces.put("" + result.first.getId(), result.second);
+                            }
+                        }).always(new Promise.OnAlways<Pair<Face, String>>() {
+                            @Override
+                            public void onAlways(boolean b, Pair<Face, String> faceStringPair, Throwable throwable) {
+                                startProcessor--;
                             }
                         });
                     }

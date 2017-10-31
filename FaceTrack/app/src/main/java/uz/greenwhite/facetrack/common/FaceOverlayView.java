@@ -78,8 +78,7 @@ public class FaceOverlayView extends AppCompatImageView {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
+    public void onDrawForeground(Canvas canvas) {
         mRenderMatrix.reset();
         mRenderMatrix.setScale(mScaleFromPreviewToView, mScaleFromPreviewToView);
 
@@ -108,7 +107,10 @@ public class FaceOverlayView extends AppCompatImageView {
 //            face.println();
         }
         canvas.restore();
+
+        super.onDrawForeground(canvas);
     }
+
 
     //##############################################################################################
 
