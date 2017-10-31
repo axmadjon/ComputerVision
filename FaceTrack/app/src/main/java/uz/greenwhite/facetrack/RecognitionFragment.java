@@ -45,8 +45,6 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
     }
 
 
-    private static final String DLIB_LANDMARK_PATH = "storage/emulated/0/Download/my.demo.dlib/shape_predictor_68_face_landmarks.dat";
-    private static final String DLIB_RECOGNITION_PATH = "storage/emulated/0/Download/my.demo.dlib/dlib_face_recognition_resnet_model_v1.dat";
 
 
     //TODO libmobile_vision_face.so
@@ -89,8 +87,8 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
                     try {
                         final DLibLandmarks68Detector dlibDetector = new DLibLandmarks68Detector();
 
-                        dlibDetector.prepareLandmark(DLIB_LANDMARK_PATH);
-                        dlibDetector.prepareRecognition(DLIB_RECOGNITION_PATH);
+                        dlibDetector.prepareLandmark(FaceApp.DLIB_LANDMARK_PATH);
+                        dlibDetector.prepareRecognition(FaceApp.DLIB_RECOGNITION_PATH);
                         if (dlibDetector.isFaceLandmarksDetectorReady()) {
                             return dlibDetector;
                         }
