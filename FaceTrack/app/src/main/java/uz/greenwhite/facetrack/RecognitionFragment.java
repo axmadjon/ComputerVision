@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.android.gms.common.images.Size;
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.face.Face;
@@ -39,13 +40,6 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
         Mold.openContent(activity, RecognitionFragment.class,
                 Mold.parcelableArgument(arg, ArgRecognition.UZUM_ADAPTER));
     }
-
-    public ArgRecognition getArgRecognition() {
-        return Mold.parcelableArgument(this, ArgRecognition.UZUM_ADAPTER);
-    }
-
-
-
 
     //TODO libmobile_vision_face.so
 
@@ -116,6 +110,16 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
     }
 
     private void initUserFaces(DLibLandmarks68Detector dLibLandmarks68Detector) {
+        CameraSource source = mCameraView.getCameraSource();
+        Size previewSize = source.getPreviewSize();
+
+        if (isPortraitMode()) {
+            mOverlayView.setCameraPreviewSize(previewSize.getHeight(), previewSize.getWidth());
+        } else {
+            mOverlayView.setCameraPreviewSize(previewSize.getWidth(), previewSize.getHeight());
+        }
+
+
         Pref pref = new Pref(getActivity());
         MyArray<UserFace> users = MyArray.nvl(pref.load(FaceApp.PREF_USERS, UserFace.UZUM_ADAPTER.toArray()));
         for (UserFace val : users) {
@@ -138,19 +142,8 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
             this.visionFaceDetector.setDLibDetector(dlibDetector);
         }
 
-        final int previewWidth = 320;
-        final int previewHeight = 240;
-
-        // Set the preview config.
-        if (isPortraitMode()) {
-            mOverlayView.setCameraPreviewSize(previewHeight, previewWidth);
-        } else {
-            mOverlayView.setCameraPreviewSize(previewWidth, previewHeight);
-        }
-
         // Create camera source.
         final CameraSource source = new CameraSource.Builder(getActivity(), visionFaceDetector)
-                .setRequestedPreviewSize(previewWidth, previewHeight)
                 .setFacing(CameraSource.CAMERA_FACING_FRONT)
                 .setAutoFocusEnabled(true)
                 .setRequestedFps(30f)

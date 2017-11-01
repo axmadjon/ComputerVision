@@ -22,7 +22,7 @@
             android:id="@+id/csp_camera"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@android:color/black"
+            android:background="@android:color/white"
             app:facing="front"
             app:flash="off" />
 

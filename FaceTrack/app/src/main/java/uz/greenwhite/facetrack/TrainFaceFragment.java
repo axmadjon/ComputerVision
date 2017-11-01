@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.google.android.gms.common.images.Size;
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.face.Face;
@@ -104,6 +105,17 @@ public class TrainFaceFragment extends MoldContentFragment implements ICameraMet
             }).done(new Promise.OnDone<DLibLandmarks68Detector>() {
                 @Override
                 public void onDone(DLibLandmarks68Detector dLibLandmarks68Detector) {
+
+                    CameraSource source = mCameraView.getCameraSource();
+                    Size previewSize = source.getPreviewSize();
+
+                    if (isPortraitMode()) {
+                        mOverlayView.setCameraPreviewSize(previewSize.getHeight(), previewSize.getWidth());
+                    } else {
+                        mOverlayView.setCameraPreviewSize(previewSize.getWidth(), previewSize.getHeight());
+                    }
+
+
                     TrainFaceFragment.this.dlibDetector = dLibLandmarks68Detector;
                     TrainFaceFragment.this.visionFaceDetector.setDLibDetector(dlibDetector);
                 }
@@ -129,19 +141,8 @@ public class TrainFaceFragment extends MoldContentFragment implements ICameraMet
             this.visionFaceDetector.setDLibDetector(dlibDetector);
         }
 
-        final int previewWidth = 320;
-        final int previewHeight = 240;
-
-        // Set the preview config.
-        if (isPortraitMode()) {
-            mOverlayView.setCameraPreviewSize(previewHeight, previewWidth);
-        } else {
-            mOverlayView.setCameraPreviewSize(previewWidth, previewHeight);
-        }
-
         // Create camera source.
         final CameraSource source = new CameraSource.Builder(getActivity(), visionFaceDetector)
-                .setRequestedPreviewSize(previewWidth, previewHeight)
                 .setFacing(CameraSource.CAMERA_FACING_FRONT)
                 .setAutoFocusEnabled(true)
                 .setRequestedFps(30f)

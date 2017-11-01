@@ -16,7 +16,7 @@ import uz.greenwhite.facetrack.R;
 
 public class FaceOverlayView extends AppCompatImageView {
 
-    private static final float ID_TEXT_SIZE = 10.0f;
+    private static final float ID_TEXT_SIZE = 30.0f;
     private static final float ID_Y_OFFSET = 50.0f;
     private static final float ID_X_OFFSET = -50.0f;
     private static final float BOX_STROKE_WIDTH = 5.0f;
@@ -93,16 +93,16 @@ public class FaceOverlayView extends AppCompatImageView {
             String userName = TextUtils.isEmpty(face.userName) ? "recognition" :
                     ("-1".equals(face.userName) ? "NotFound" : face.userName);
             canvas.drawText("user: " + userName,
-                    face.mBound.left, face.mBound.bottom + 10, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 20, mIdPaint);
 
             canvas.drawText("id: " + face.face.getId(),
-                    face.mBound.left, face.mBound.bottom + 20, mIdPaint);
-            canvas.drawText("happiness: " + String.format("%.2f", face.face.getIsSmilingProbability()),
-                    face.mBound.left, face.mBound.bottom + 30, mIdPaint);
-            canvas.drawText("right eye: " + String.format("%.2f", face.face.getIsRightEyeOpenProbability()),
                     face.mBound.left, face.mBound.bottom + 40, mIdPaint);
+            canvas.drawText("happiness: " + String.format("%.2f", face.face.getIsSmilingProbability()),
+                    face.mBound.left, face.mBound.bottom + 60, mIdPaint);
+            canvas.drawText("right eye: " + String.format("%.2f", face.face.getIsRightEyeOpenProbability()),
+                    face.mBound.left, face.mBound.bottom + 80, mIdPaint);
             canvas.drawText("left eye: " + String.format("%.2f", face.face.getIsLeftEyeOpenProbability()),
-                    face.mBound.left, face.mBound.bottom + 50, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 100, mIdPaint);
 
 //            face.println();
         }
