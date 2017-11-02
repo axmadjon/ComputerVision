@@ -26,8 +26,12 @@ public class FaceOverlayView extends AppCompatImageView {
     // Stroke & paint.
     private static final float WIDTH = 4.f;
     private final int mStrokeWidth;
-    private final Paint mStrokePaint;
-    private final Paint mIdPaint;
+    private final Paint mStrokePaintWait;
+    private final Paint mStrokePaintFound;
+    private final Paint mStrokePaintNotFound;
+    private final Paint mIdPaintWait;
+    private final Paint mIdPaintFound;
+    private final Paint mIdPaintNotFound;
     private final Matrix mRenderMatrix = new Matrix();
 
     // State
@@ -50,16 +54,36 @@ public class FaceOverlayView extends AppCompatImageView {
 
         mStrokeWidth = (int) (density * WIDTH);
 
-        mStrokePaint = new Paint();
-        mStrokePaint.setStrokeWidth(mStrokeWidth);
-        mStrokePaint.setColor(ContextCompat.getColor(context, R.color.colorPrimary));
-        mStrokePaint.setStyle(Paint.Style.STROKE);
-        mStrokePaint.setStrokeCap(Paint.Cap.ROUND);
+        mStrokePaintWait = new Paint();
+        mStrokePaintWait.setStrokeWidth(mStrokeWidth);
+        mStrokePaintWait.setColor(ContextCompat.getColor(context, R.color.color_wait));
+        mStrokePaintWait.setStyle(Paint.Style.STROKE);
+        mStrokePaintWait.setStrokeCap(Paint.Cap.ROUND);
+
+        mStrokePaintFound = new Paint();
+        mStrokePaintFound.setStrokeWidth(mStrokeWidth);
+        mStrokePaintFound.setColor(ContextCompat.getColor(context, R.color.color_green));
+        mStrokePaintFound.setStyle(Paint.Style.STROKE);
+        mStrokePaintFound.setStrokeCap(Paint.Cap.ROUND);
+
+        mStrokePaintNotFound = new Paint();
+        mStrokePaintNotFound.setStrokeWidth(mStrokeWidth);
+        mStrokePaintNotFound.setColor(ContextCompat.getColor(context, R.color.color_red));
+        mStrokePaintNotFound.setStyle(Paint.Style.STROKE);
+        mStrokePaintNotFound.setStrokeCap(Paint.Cap.ROUND);
 
 
-        mIdPaint = new Paint();
-        mIdPaint.setColor(ContextCompat.getColor(context, R.color.colorPrimary));
-        mIdPaint.setTextSize(ID_TEXT_SIZE);
+        mIdPaintWait = new Paint();
+        mIdPaintWait.setColor(ContextCompat.getColor(context, R.color.color_wait));
+        mIdPaintWait.setTextSize(ID_TEXT_SIZE);
+
+        mIdPaintFound = new Paint();
+        mIdPaintFound.setColor(ContextCompat.getColor(context, R.color.color_green));
+        mIdPaintFound.setTextSize(ID_TEXT_SIZE);
+
+        mIdPaintNotFound = new Paint();
+        mIdPaintNotFound.setColor(ContextCompat.getColor(context, R.color.color_red));
+        mIdPaintNotFound.setTextSize(ID_TEXT_SIZE);
     }
 
     public void setCameraPreviewSize(final int width, final int height) {
@@ -85,24 +109,36 @@ public class FaceOverlayView extends AppCompatImageView {
         canvas.save();
         canvas.concat(mRenderMatrix);
 
-        mStrokePaint.setStrokeWidth(mStrokeWidth / mScaleFromPreviewToView);
 
         for (MyFace face : mFaces) {
-            canvas.drawRect(face.mBound, mStrokePaint);
+            Paint printRect = mStrokePaintWait;
+            Paint printText = mIdPaintWait;
+
+            if (face.userName.startsWith("Y")) {
+                printRect = mStrokePaintFound;
+                printText = mIdPaintFound;
+
+            } else if (face.userName.startsWith("N")) {
+                printRect = mStrokePaintNotFound;
+                printText = mIdPaintNotFound;
+            }
+
+            printRect.setStrokeWidth(mStrokeWidth / mScaleFromPreviewToView);
+            canvas.drawRect(face.mBound, printRect);
 
             String userName = TextUtils.isEmpty(face.userName) ? "recognition" :
                     ("-1".equals(face.userName) ? "NotFound" : face.userName);
             canvas.drawText("user: " + userName,
-                    face.mBound.left, face.mBound.bottom + 20, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 25, printText);
 
             canvas.drawText("id: " + face.face.getId(),
-                    face.mBound.left, face.mBound.bottom + 40, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 45, printText);
             canvas.drawText("happiness: " + String.format("%.2f", face.face.getIsSmilingProbability()),
-                    face.mBound.left, face.mBound.bottom + 60, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 65, printText);
             canvas.drawText("right eye: " + String.format("%.2f", face.face.getIsRightEyeOpenProbability()),
-                    face.mBound.left, face.mBound.bottom + 80, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 85, printText);
             canvas.drawText("left eye: " + String.format("%.2f", face.face.getIsLeftEyeOpenProbability()),
-                    face.mBound.left, face.mBound.bottom + 100, mIdPaint);
+                    face.mBound.left, face.mBound.bottom + 150, printText);
 
 //            face.println();
         }

@@ -218,13 +218,18 @@ JNI_METHOD(recognitionContains)(JNIEnv *env,
                 for ( long i2 = 0; i2 < face_descriptors.size(); ++i2){
 
                     LOGI("L%d: i1=%d, i2=%d", __LINE__, i1, i2);
+                    double faceCompareAccuracy = length(pairItem.second[i1] - face_descriptors[i2]);
+                    std::string result = std::to_string(faceCompareAccuracy);
 
-                    if (length(pairItem.second[i1] - face_descriptors[i2]) <= 0.6){
+                    if (faceCompareAccuracy <= 0.5){
                         LOGI("L%d: FOUND", __LINE__);
-                        return env->NewStringUTF(pairItem.first.c_str());
+                        result = "Y:" + result + "=>" + pairItem.first;
+                        return env->NewStringUTF(result.c_str());
 
                     }else{
                         LOGI("L%d: NOT FOUND", __LINE__);
+                        result = "N:" + result;
+                        return env->NewStringUTF(result.c_str());
                     }
                 }
             }
@@ -283,32 +288,3 @@ JNI_METHOD(recognitionFace)(JNIEnv *env,
 
     return (mResultArray);
 }
-
-std::vector<matrix<rgb_pixel>> jitter_image(
-        const matrix<rgb_pixel>& img
-)
-{
-    // All this function does is make 100 copies of img, all slightly jittered by being
-    // zoomed, rotated, and translated a little bit differently.
-    thread_local random_cropper cropper;
-    cropper.set_chip_dims(150,150);
-    cropper.set_randomly_flip(true);
-//    cropper.set_max_object_size(0.99999);
-    cropper.set_background_crops_fraction(0);
-//    cropper.set_min_object_size(0.97);
-    cropper.set_translate_amount(0.02);
-    cropper.set_max_rotation_degrees(3);
-
-    std::vector<mmod_rect> raw_boxes(1), ignored_crop_boxes;
-    raw_boxes[0] = shrink_rect(get_rect(img),3);
-    std::vector<matrix<rgb_pixel>> crops;
-
-    matrix<rgb_pixel> temp;
-    for (int i = 0; i < 100; ++i)
-    {
-        cropper(img, raw_boxes, temp, ignored_crop_boxes);
-        crops.push_back(move(temp));
-    }
-    return crops;
-}
-
