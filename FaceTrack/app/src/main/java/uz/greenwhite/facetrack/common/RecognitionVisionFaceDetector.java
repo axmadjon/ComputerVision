@@ -3,14 +3,13 @@ package uz.greenwhite.facetrack.common;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.Rect;
-import android.util.Pair;
+import android.text.TextUtils;
 import android.util.SparseArray;
 
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -22,14 +21,17 @@ import uz.greenwhite.lib.util.Util;
 
 public class RecognitionVisionFaceDetector extends VisionFaceDetector {
 
-    public volatile HashMap<String, String> userFaces = new HashMap<>();
+    private volatile SparseArray<String> faceRecognet = new SparseArray<>();
+    private volatile SparseArray<Long> faceRecognitionTime = new SparseArray<>();
+
     private final int supportThread;
 
     public RecognitionVisionFaceDetector(ICameraMetadata mCameraMetadata,
                                          Detector<Face> faceDetector,
                                          FaceOverlayView overlayView) {
         super(mCameraMetadata, faceDetector, overlayView);
-        userFaces.clear();
+        faceRecognet.clear();
+        faceRecognitionTime.clear();
         this.supportThread = Runtime.getRuntime().availableProcessors();
     }
 
@@ -52,7 +54,7 @@ public class RecognitionVisionFaceDetector extends VisionFaceDetector {
 
             Rect bound = getFaceBound(face, ow);
 
-            MyFace myFace = new MyFace(face, bound, Util.nvl(userFaces.get("" + face.getId())));
+            MyFace myFace = new MyFace(face, bound, Util.nvl(faceRecognet.get(face.getId())));
             mDetFaces.put(i, myFace);
             startRecognition(bitmap, myFace);
         }
@@ -61,50 +63,64 @@ public class RecognitionVisionFaceDetector extends VisionFaceDetector {
     }
 
     private static final Object mLock = new Object();
-    private static volatile boolean mRecognitionLock = false;
-    public static int startProcessor = 0;
-    public volatile Set<String> processFaceIds = new HashSet<>();
+    private volatile Set<Integer> processFaceIds = new HashSet<>();
 
     private void startRecognition(final Bitmap bitmap, final MyFace myFace) {
-        if (userFaces.containsKey("" + myFace.face.getId())) return;
+        String recognitionUserName = Util.nvl(faceRecognet.get(myFace.face.getId()));
+        Long faceRecognitionLastTime = Util.nvl(faceRecognitionTime.get(myFace.face.getId()), 0L);
 
-        if (this.dLibDetector != null) {
-            if (startProcessor >= supportThread ||
-                    mRecognitionLock) return;
+        long currentTimeMillis = System.currentTimeMillis();
+
+        if (("-1".equals(recognitionUserName) &&
+                (currentTimeMillis - faceRecognitionLastTime) <= 5000) ||
+
+                (!TextUtils.isEmpty(recognitionUserName) &&
+                        (currentTimeMillis - faceRecognitionLastTime) <= 10000)) {
+            return;
+        }
+
+        if (this.dLibDetector != null &&
+                processFaceIds.size() < supportThread &&
+                !processFaceIds.contains(myFace.face.getId())) {
 
             synchronized (mLock) {
-                if (mRecognitionLock) return;
+                if (processFaceIds.size() >= supportThread ||
+                        processFaceIds.contains(myFace.face.getId())) return;
 
-                mRecognitionLock = true;
-                startProcessor++;
-                System.out.println("start:recognitionFaceInBitmapRect");
+                processFaceIds.add(myFace.face.getId());
+
                 Manager.handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        JobApi.execute(new ShortJob<Pair<Face, String>>() {
-                            @Override
-                            public Pair<Face, String> execute() throws Exception {
-                                String result = dLibDetector.recognitionContains(bitmap,
-                                        myFace.mBound.left, myFace.mBound.top, myFace.mBound.right, myFace.mBound.bottom);
+                        final Face face = myFace.face;
+                        final int faceId = face.getId();
 
-                                System.out.println("Result: " + result);
-
-                                mRecognitionLock = false;
-                                return new Pair<>(myFace.face, result);
-                            }
-                        }).done(new Promise.OnDone<Pair<Face, String>>() {
+                        JobApi.execute(new ShortJob<String>() {
                             @Override
-                            public void onDone(Pair<Face, String> result) {
-                                userFaces.put("" + result.first.getId(), result.second);
+                            public String execute() throws Exception {
+                                return dLibDetector.recognitionContains(
+                                        bitmap,
+                                        myFace.mBound.left,
+                                        myFace.mBound.top,
+                                        myFace.mBound.right,
+                                        myFace.mBound.bottom);
                             }
-                        }).always(new Promise.OnAlways<Pair<Face, String>>() {
+                        }).done(new Promise.OnDone<String>() {
                             @Override
-                            public void onAlways(boolean b, Pair<Face, String> faceStringPair, Throwable throwable) {
-                                startProcessor--;
+                            public void onDone(String result) {
+                                faceRecognet.put(faceId, result);
+                                faceRecognitionTime.put(faceId, System.currentTimeMillis());
+                            }
+                        }).always(new Promise.OnAlways<String>() {
+                            @Override
+                            public void onAlways(boolean b, String faceStringPair, Throwable throwable) {
+                                processFaceIds.remove(faceId);
+                                faceRecognitionTime.remove(faceId);
                             }
                         });
                     }
                 });
+
             }
         }
     }
