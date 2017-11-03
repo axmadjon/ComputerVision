@@ -11,6 +11,8 @@ public class MyFace {
     public final String userName;
 
     public MyFace(Face face, Rect bound, String userName) {
+        if (userName == null) userName = "";
+
         this.face = face;
         this.mBound = bound;
         this.userName = userName;

@@ -25,7 +25,24 @@ import android.util.Log;
 
 public class DLibLandmarks68Detector {
 
-    public DLibLandmarks68Detector() {
+    private static final Object mObject = new Object();
+
+    private static DLibLandmarks68Detector detectorInstance;
+
+    public static DLibLandmarks68Detector getDetectorInstance(String landmarkPath, String recognitionPath) {
+        if (detectorInstance == null) {
+            synchronized (mObject) {
+                if (detectorInstance == null) {
+                    detectorInstance = new DLibLandmarks68Detector();
+                    detectorInstance.prepareLandmark(landmarkPath);
+                    detectorInstance.prepareRecognition(recognitionPath);
+                }
+            }
+        }
+        return detectorInstance;
+    }
+
+    private DLibLandmarks68Detector() {
         // TODO: Load library in worker thread?
         try {
             System.loadLibrary("c++_shared");

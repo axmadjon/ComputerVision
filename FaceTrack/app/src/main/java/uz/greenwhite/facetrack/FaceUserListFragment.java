@@ -25,7 +25,7 @@ public class FaceUserListFragment extends MoldContentRecyclerFragment<UserFace> 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        Mold.setTitle(getActivity(), "UserFace");
+        Mold.setTitle(getActivity(), "Users");
 
         setEmptyText("Face is empty\nYou can create a new UserFace");
 

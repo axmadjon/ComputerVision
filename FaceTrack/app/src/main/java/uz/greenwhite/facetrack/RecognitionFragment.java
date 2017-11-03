@@ -63,6 +63,8 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        Mold.setTitle(getActivity(), "Smartup");
+
         this.mCameraView = vsRoot.id(R.id.csp_camera);
         this.mOverlayView = vsRoot.id(R.id.fov_overlay);
     }
@@ -78,19 +80,9 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
             jobMate.executeWithDialog(getActivity(), new ShortJob<DLibLandmarks68Detector>() {
                 @Override
                 public DLibLandmarks68Detector execute() throws Exception {
-                    try {
-                        final DLibLandmarks68Detector dlibDetector = new DLibLandmarks68Detector();
-
-                        dlibDetector.prepareLandmark(FaceApp.DLIB_LANDMARK_PATH);
-                        dlibDetector.prepareRecognition(FaceApp.DLIB_RECOGNITION_PATH);
-                        if (dlibDetector.isFaceLandmarksDetectorReady()) {
-                            return dlibDetector;
-                        }
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    return null;
+                    return DLibLandmarks68Detector.getDetectorInstance(
+                            FaceApp.DLIB_LANDMARK_PATH, FaceApp.DLIB_RECOGNITION_PATH
+                    );
                 }
             }).done(new Promise.OnDone<DLibLandmarks68Detector>() {
                 @Override

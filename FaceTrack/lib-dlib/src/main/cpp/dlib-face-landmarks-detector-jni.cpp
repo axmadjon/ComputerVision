@@ -208,34 +208,20 @@ JNI_METHOD(recognitionContains)(JNIEnv *env,
     std::vector<matrix<float, 0, 1>> face_descriptors = sFaceRecognition(mrFaces);
 
     if (face_descriptors.size() > 0) {
-        LOGI("L%d: face_descriptors.size=%d, knowFaces.size=%d", __LINE__,
-             face_descriptors.size(), knowFaces.size());
-
         for (long r = 0; r < knowFaces.size(); ++r) {
             std::pair<string, std::vector<matrix<float, 0, 1>>> pairItem = knowFaces[r];
 
             for ( long i1 = 0; i1 < pairItem.second.size(); ++i1){
                 for ( long i2 = 0; i2 < face_descriptors.size(); ++i2){
 
-                    LOGI("L%d: i1=%d, i2=%d", __LINE__, i1, i2);
                     double faceCompareAccuracy = length(pairItem.second[i1] - face_descriptors[i2]);
-                    std::string result = std::to_string(faceCompareAccuracy);
 
                     if (faceCompareAccuracy <= 0.5){
-                        LOGI("L%d: FOUND", __LINE__);
-                        result = "Y:" + result + "=>" + pairItem.first;
-                        return env->NewStringUTF(result.c_str());
-
-                    }else{
-                        LOGI("L%d: NOT FOUND", __LINE__);
-                        result = "N:" + result;
-                        return env->NewStringUTF(result.c_str());
+                        return env->NewStringUTF(pairItem.first.c_str());
                     }
                 }
             }
         }
-    }else{
-        LOGI("L%d: face_descriptors.size=%d", __LINE__, face_descriptors.size());
     }
     return env->NewStringUTF("-1");
 }
