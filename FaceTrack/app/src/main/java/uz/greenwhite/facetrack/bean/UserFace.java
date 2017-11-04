@@ -1,6 +1,9 @@
 package uz.greenwhite.facetrack.bean;
 
 
+import com.my.jni.dlib.DLibLandmarks68Detector;
+
+import uz.greenwhite.facetrack.common.PersonFace;
 import uz.greenwhite.lib.collection.MyArray;
 import uz.greenwhite.lib.collection.MyMapper;
 import uz.greenwhite.lib.uzum.UzumAdapter;
@@ -10,25 +13,20 @@ import uz.greenwhite.lib.uzum.UzumWriter;
 public class UserFace {
 
     public final String name;
-    public final MyArray<String> faceEncodes;
+    public final MyArray<PersonFace> faces;
 
-    public UserFace(String name, MyArray<String> faceEncodes) {
+    public UserFace(String name, MyArray<PersonFace> faces) {
         this.name = name;
-        this.faceEncodes = faceEncodes;
+        this.faces = faces;
     }
 
-    public String[][] getFaceEncodeToLong() {
-        String[][] result = new String[faceEncodes.size()][3];
-        for (int i = 0; i < faceEncodes.size(); i++) {
-            String val = faceEncodes.get(i);
-            String[] split = val.split(",");
-            result[i] = new String[]{split[0], split[1], split.length == 3 ? split[2] : ""};
-
+    public void prepareFaceEncodeToString(DLibLandmarks68Detector detector) {
+        for (int i = 0; i < faces.size(); i++) {
+            detector.prepareUserFaces(name, faces.get(i).getFaceEncodeToString());
         }
-        return result;
     }
 
-    public static final UserFace EMPTY = new UserFace("", MyArray.<String>emptyArray());
+    public static final UserFace EMPTY = new UserFace("", MyArray.<PersonFace>emptyArray());
 
     public static final MyMapper<UserFace, String> KEY_ADAPTER = new MyMapper<UserFace, String>() {
         @Override
@@ -40,13 +38,13 @@ public class UserFace {
     public static final UzumAdapter<UserFace> UZUM_ADAPTER = new UzumAdapter<UserFace>() {
         @Override
         public UserFace read(UzumReader in) {
-            return new UserFace(in.readString(), in.readValue(STRING_ARRAY));
+            return new UserFace(in.readString(), in.readArray(PersonFace.UZUM_ADAPTER));
         }
 
         @Override
         public void write(UzumWriter out, UserFace val) {
             out.write(val.name);
-            out.write(val.faceEncodes, STRING_ARRAY);
+            out.write(val.faces, PersonFace.UZUM_ADAPTER);
         }
     };
 }

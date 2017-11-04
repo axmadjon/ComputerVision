@@ -26,6 +26,7 @@ import uz.greenwhite.facetrack.common.CameraSourcePreview;
 import uz.greenwhite.facetrack.common.FaceOverlayView;
 import uz.greenwhite.facetrack.common.ICameraMetadata;
 import uz.greenwhite.facetrack.common.OnFaceListener;
+import uz.greenwhite.facetrack.common.PersonFace;
 import uz.greenwhite.facetrack.common.TrainVisionFaceDetector;
 import uz.greenwhite.facetrack.ds.Pref;
 import uz.greenwhite.lib.collection.MyArray;
@@ -35,6 +36,7 @@ import uz.greenwhite.lib.job.Promise;
 import uz.greenwhite.lib.job.ShortJob;
 import uz.greenwhite.lib.mold.Mold;
 import uz.greenwhite.lib.mold.MoldContentFragment;
+import uz.greenwhite.lib.uzum.Uzum;
 import uz.greenwhite.lib.view_setup.UI;
 import uz.greenwhite.lib.view_setup.ViewSetup;
 
@@ -149,34 +151,55 @@ public class TrainFaceFragment extends MoldContentFragment implements ICameraMet
 
         visionFaceDetector.setOnFaceListener(new OnFaceListener() {
 
+            private void saveNewFace(PersonFace result) {
+                ArgRecognition arg = getArgRecognition();
+                Pref pref = new Pref(getActivity());
+
+                MyArray<UserFace> users = MyArray.nvl(pref.load(FaceApp.PREF_USERS,
+                        UserFace.UZUM_ADAPTER.toArray()));
+
+                final UserFace found = users.find(arg.userFace.name, UserFace.KEY_ADAPTER);
+
+                users = users.filter(new MyPredicate<UserFace>() {
+                    @Override
+                    public boolean apply(UserFace val) {
+                        return !val.name.equals(found.name);
+                    }
+                });
+
+                UserFace nUserFace = new UserFace(found.name,
+                        found.faces.append(result));
+
+                users = users.append(nUserFace);
+
+                pref.save(FaceApp.PREF_USERS, users, UserFace.UZUM_ADAPTER.toArray());
+            }
+
             @Override
             public void detect(Face face, final Bitmap bitmap, final Rect bound) {
                 if (dlibDetector != null) {
-                    jobMate.executeWithDialog(getActivity(), new ShortJob<String[]>() {
+                    jobMate.executeWithDialog(getActivity(), new ShortJob<PersonFace>() {
                         @Override
-                        public String[] execute() throws Exception {
-                            return dlibDetector.recognitionFace(bitmap, bound.left,
-                                    bound.top, bound.right, bound.bottom);
+                        public PersonFace execute() throws Exception {
+                            String resultFace = dlibDetector.recognitionFace(
+                                    bitmap,
+                                    bound.left,
+                                    bound.top,
+                                    bound.right,
+                                    bound.bottom);
+
+                            return Uzum.toValue(resultFace, PersonFace.UZUM_ADAPTER);
                         }
-                    }).done(new Promise.OnDone<String[]>() {
+                    }).done(new Promise.OnDone<PersonFace>() {
                         @Override
-                        public void onDone(String[] results) {
-                            ArgRecognition arg = getArgRecognition();
-                            Pref pref = new Pref(getActivity());
-                            MyArray<UserFace> users = MyArray.nvl(pref.load(FaceApp.PREF_USERS, UserFace.UZUM_ADAPTER.toArray()));
-
-                            final UserFace found = users.find(arg.userFace.name, UserFace.KEY_ADAPTER);
-                            users = users.filter(new MyPredicate<UserFace>() {
-                                @Override
-                                public boolean apply(UserFace val) {
-                                    return !found.name.equals(val.name);
-                                }
-                            });
-
-                            users = users.append(new UserFace(found.name, MyArray.from(results)));
-
-                            pref.save(FaceApp.PREF_USERS, users, UserFace.UZUM_ADAPTER.toArray());
-                            Mold.makeSnackBar(getActivity(), "Success add new FaceEncode").show();
+                        public void onDone(PersonFace results) {
+                            try {
+                                saveNewFace(results);
+                                Mold.makeSnackBar(getActivity(), "Success add new FaceEncode").show();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                UI.alertError(getActivity(), e);
+                            }
                         }
                     });
                 }

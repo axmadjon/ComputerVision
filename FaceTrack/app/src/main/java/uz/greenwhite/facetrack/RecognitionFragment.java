@@ -115,8 +115,8 @@ public class RecognitionFragment extends MoldContentFragment implements ICameraM
         Pref pref = new Pref(getActivity());
         MyArray<UserFace> users = MyArray.nvl(pref.load(FaceApp.PREF_USERS, UserFace.UZUM_ADAPTER.toArray()));
         for (UserFace val : users) {
-            if (val.faceEncodes.nonEmpty()) {
-                dLibLandmarks68Detector.prepareUserFaces(val.name, val.getFaceEncodeToLong());
+            if (val.faces.nonEmpty()) {
+                val.prepareFaceEncodeToString(dLibLandmarks68Detector);
             }
         }
     }

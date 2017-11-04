@@ -12,6 +12,7 @@ import android.widget.Button;
 import android.widget.EditText;
 
 import uz.greenwhite.facetrack.bean.UserFace;
+import uz.greenwhite.facetrack.common.PersonFace;
 import uz.greenwhite.facetrack.ds.Pref;
 import uz.greenwhite.lib.collection.MyArray;
 import uz.greenwhite.lib.mold.Mold;
@@ -72,7 +73,7 @@ public class CreateUserFaceDialog extends MoldDialogFragment {
             return;
         }
 
-        userFaces = userFaces.append(new UserFace(userName, MyArray.<String>emptyArray()));
+        userFaces = userFaces.append(new UserFace(userName, MyArray.<PersonFace>emptyArray()));
 
         pref.save(FaceApp.PREF_USERS, Uzum.toJson(userFaces, UserFace.UZUM_ADAPTER.toArray()));
 

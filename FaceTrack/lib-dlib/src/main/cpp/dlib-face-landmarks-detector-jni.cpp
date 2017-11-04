@@ -89,19 +89,52 @@ void convertBitmapToArray2d(JNIEnv *env, jobject bitmap, dlib::array2d<dlib::rgb
     AndroidBitmap_unlockPixels(env, bitmap);
 }
 
-long jStringToLong(JNIEnv *env, jstring str){
+long jStringToLong(JNIEnv *env, jstring str) {
     const char *resultStr = env->GetStringUTFChars(str, JNI_FALSE);
     long result = std::stol(resultStr);
     env->ReleaseStringUTFChars(str, resultStr);
     return result;
 }
 
-float jStringToFloat(JNIEnv *env, jstring str){
+float jStringToFloat(JNIEnv *env, jstring str) {
     const char *resultStr = env->GetStringUTFChars(str, JNI_FALSE);
     float result = std::stof(resultStr);
     env->ReleaseStringUTFChars(str, resultStr);
     return result;
 }
+
+//void convertJavaFaceEncode(JNIEnv *env,
+//                           jobjectArray faces,
+//                           std::vector<matrix<float, 0, 1>> &out) {
+//    long facesSize = (long) env->GetArrayLength(faces);
+//    for (long position = 0; position < facesSize; ++position) {
+//        jobjectArray faceElement = (jobjectArray) env->GetObjectArrayElement(faces, position);
+//        jobjectArray firstSettingItem = (jobjectArray) env->GetObjectArrayElement(faceElement, 0);
+//
+//        long nr = jStringToLong(env, (jstring) env->GetObjectArrayElement(firstSettingItem, 0));
+//        long nc = jStringToLong(env, (jstring) env->GetObjectArrayElement(firstSettingItem, 1));
+//
+//        matrix<float, 0, 1> m_matrix;
+//        m_matrix.set_size(nr, nc);
+//
+//        long encodeSize = (long) env->GetArrayLength(faceElement);
+//        for (long index = 1; index < encodeSize; ++index) {
+//            jobjectArray faceEncodeElement = (jobjectArray) env->GetObjectArrayElement(faceElement, index);
+//
+//            long iNr = jStringToLong(env, (jstring) env->GetObjectArrayElement(faceEncodeElement, 0));
+//            long iNc = jStringToLong(env, (jstring) env->GetObjectArrayElement(faceEncodeElement, 1));
+//            float iValue = jStringToFloat(env, (jstring) env->GetObjectArrayElement(faceEncodeElement, 2));
+//
+//            m_matrix(iNr, iNc) = iValue;
+//
+//            env->DeleteLocalRef(faceEncodeElement);
+//        }
+//        out.push_back(m_matrix);
+//
+//        env->DeleteLocalRef(firstSettingItem);
+//        env->DeleteLocalRef(faceElement);
+//    }
+//}
 
 void convertJavaFaceEncodeToDlibVectorMatrix(JNIEnv *env,
                                              jobjectArray encode,
@@ -150,15 +183,18 @@ JNI_METHOD(prepareUserFaces)(JNIEnv *env,
                              jstring userName,
                              jobjectArray faceEncode) {
     const char *name = env->GetStringUTFChars(userName, JNI_FALSE);
+    std::string user_name = std::string(name);
 
     LOGI("L%d: search in knowFaces loop start", __LINE__);
     for (long index = 0; index < knowFaces.size(); ++index) {
         std::pair<string, std::vector<matrix<float, 0, 1>>> item = knowFaces[index];
-        if (item.first.c_str() == name){
+        if (item.first == user_name) {
+            LOGI("L%d: found in knowFaces", __LINE__);
             convertJavaFaceEncodeToDlibVectorMatrix(env, faceEncode, item.second);
             return;
         }
     }
+    LOGI("L%d: NOT FOUND in knowFaces", __LINE__);
 
     std::pair<std::string, std::vector<matrix<float, 0, 1>>> newItem;
     string str(name);
@@ -207,27 +243,46 @@ JNI_METHOD(recognitionContains)(JNIEnv *env,
 
     std::vector<matrix<float, 0, 1>> face_descriptors = sFaceRecognition(mrFaces);
 
+    std::string user_name = "-1";
+
     if (face_descriptors.size() > 0) {
+        double maxAccuracy = 1.0;
+        int containFacesCount = 0;
+
         for (long r = 0; r < knowFaces.size(); ++r) {
             std::pair<string, std::vector<matrix<float, 0, 1>>> pairItem = knowFaces[r];
 
-            for ( long i1 = 0; i1 < pairItem.second.size(); ++i1){
-                for ( long i2 = 0; i2 < face_descriptors.size(); ++i2){
+            double uMaxAccuracy = 1.0;
+            int uContainFacesCount = 0;
+
+            for (long i1 = 0; i1 < pairItem.second.size(); ++i1) {
+                for (long i2 = 0; i2 < face_descriptors.size(); ++i2) {
 
                     double faceCompareAccuracy = length(pairItem.second[i1] - face_descriptors[i2]);
 
-                    if (faceCompareAccuracy <= 0.5){
-                        return env->NewStringUTF(pairItem.first.c_str());
+                    if (faceCompareAccuracy <= 0.5) {
+                        if (uMaxAccuracy > faceCompareAccuracy) {
+                            uMaxAccuracy = faceCompareAccuracy;
+                        }
+                        uContainFacesCount = uContainFacesCount + 1;
                     }
                 }
             }
+
+            if (uMaxAccuracy != 1.0 &&
+                (maxAccuracy > uMaxAccuracy || containFacesCount < uContainFacesCount)) {
+                user_name = pairItem.first;
+                maxAccuracy = uMaxAccuracy;
+                containFacesCount = uContainFacesCount;
+            }
+
         }
     }
-    return env->NewStringUTF("-1");
+    return env->NewStringUTF(user_name.c_str());
 }
 
 
-extern "C" JNIEXPORT jobjectArray JNICALL
+extern "C" JNIEXPORT jstring JNICALL
 JNI_METHOD(recognitionFace)(JNIEnv *env,
                             jobject thiz,
                             jobject bitmap,
@@ -249,28 +304,31 @@ JNI_METHOD(recognitionFace)(JNIEnv *env,
     std::vector<matrix<float, 0, 1>> face_descriptors = sFaceRecognition(mrFaces);
 
     if (face_descriptors.size() != 1) {
-        return (jobjectArray) env->NewObjectArray(0, env->FindClass("java/lang/String"),
-                                                  env->NewStringUTF(""));
+        return env->NewStringUTF("[]");
     }
 
-    std::vector<string> mFaceRecogResult;
     matrix<float, 0, 1> item = face_descriptors[0];
+
+    std::string result_json = "[\"" + std::to_string(item.nr()) +
+            "\",\"" + std::to_string(item.nc()) +
+            "\",[";
+
+
+    bool first_cycler = false;
     for (long r = 0; r < item.nr(); ++r) {
         for (long c = 0; c < item.nc(); ++c) {
-            mFaceRecogResult.push_back(std::to_string(r) + "," + std::to_string(c) + "," + std::to_string(item(r, c)));
+            if (first_cycler) {
+                result_json += ",";
+            }
+            first_cycler = true;
+
+            result_json += "[\"" + std::to_string(r) + "\",\""
+                           + std::to_string(c) + "\",\""
+                           + std::to_string(item(r, c)) + "\"]";
         }
     }
 
-    jobjectArray mResultArray;
-    mResultArray = (jobjectArray) env->NewObjectArray(mFaceRecogResult.size() + 1,
-                                                      env->FindClass("java/lang/String"),
-                                                      env->NewStringUTF(""));
 
-    std::string mFaceHeader = std::to_string(item.nr()) + "," + std::to_string(item.nc());
-    env->SetObjectArrayElement(mResultArray, 0, env->NewStringUTF(mFaceHeader.c_str()));
-    for (long i = 0; i < mFaceRecogResult.size(); i++) {
-        env->SetObjectArrayElement(mResultArray, i + 1, env->NewStringUTF(mFaceRecogResult[i].c_str()));
-    }
-
-    return (mResultArray);
+    result_json += "]]";
+    return env->NewStringUTF(result_json.c_str());
 }

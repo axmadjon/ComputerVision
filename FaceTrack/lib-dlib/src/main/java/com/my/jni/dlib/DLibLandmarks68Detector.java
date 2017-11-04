@@ -84,5 +84,5 @@ public class DLibLandmarks68Detector {
 
     public native String recognitionContains(Bitmap bitmap, long left, long top, long right, long bottom);
 
-    public native String[] recognitionFace(Bitmap bitmap, long left, long top, long right, long bottom);
+    public native String recognitionFace(Bitmap bitmap, long left, long top, long right, long bottom);
 }
