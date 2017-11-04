@@ -8,7 +8,7 @@ import uz.greenwhite.lib.mold.MoldApplication;
 public class FaceApp extends MoldApplication {
 
     public static final String PREF_USERS = "users_v2";
-    public static final String DLIB_LANDMARK_PATH = "storage/emulated/0/Download/shape_predictor_68_face_landmarks.dat";
+    public static final String DLIB_LANDMARK_PATH = "storage/emulated/0/Download/shape_predictor_5_face_landmarks.dat";
     public static final String DLIB_RECOGNITION_PATH = "storage/emulated/0/Download/dlib_face_recognition_resnet_model_v1.dat";
 
 

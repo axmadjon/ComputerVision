@@ -5,6 +5,7 @@
 
 
 #include "tensor.h"
+#include "../geometry/rectangle.h"
 
 namespace dlib
 {
@@ -141,6 +142,21 @@ namespace dlib
             const tensor& v2
         );
 
+        void exp (
+            tensor& dest,
+            const tensor& src
+        );
+
+        void log (
+            tensor& dest,
+            const tensor& src
+        );
+
+        void log10 (
+            tensor& dest,
+            const tensor& src
+        );
+
     // ------------------------------------------------------------------------------------
 
         void set_tensor (
@@ -163,6 +179,13 @@ namespace dlib
         );
 
         void multiply_conv (
+            bool add_to,
+            tensor& dest,
+            const tensor& src1,
+            const tensor& src2
+        );
+
+        void multiply_zero_padded (
             bool add_to,
             tensor& dest,
             const tensor& src1,
@@ -228,6 +251,17 @@ namespace dlib
             const float A,
             const float B,
             const float C
+        );
+
+        void affine_transform(
+            const rectangle& rect,
+            tensor& dest, 
+            const tensor& src1, 
+            const tensor& src2, 
+            const tensor& src3, 
+            float A, 
+            float B,
+            float C
         );
 
         // Note that this function isn't in the tt:: namespace because add_scaled() is
@@ -319,13 +353,48 @@ namespace dlib
             tensor& params_grad 
         );
 
-        void copy_tensor(
-                tensor& dest,
-                size_t dest_k_offset,
-                const tensor& src,
-                size_t src_k_offset,
-                size_t count_k
+
+    // ----------------------------------------------------------------------------------------
+
+        void resize_bilinear (
+            tensor& dest,
+            long dest_row_stride,
+            long dest_channel_stride,
+            const tensor& src,
+            long src_row_stride,
+            long src_channel_stride
         );
+
+        void resize_bilinear_gradient (
+            tensor& grad,
+            long grad_row_stride,
+            long grad_channel_stride,
+            const tensor& gradient_input,
+            long gradient_input_row_stride,
+            long gradient_input_channel_stride
+        );
+
+        inline void resize_bilinear (
+            tensor& dest,
+            const tensor& src
+        ) { resize_bilinear(dest, dest.nc(), dest.nr()*dest.nc(), src, src.nc(), src.nr()*src.nc()); }
+
+        inline void resize_bilinear_gradient (
+            tensor& grad,
+            const tensor& gradient_input
+        ) { resize_bilinear_gradient(grad, grad.nc(), grad.nr()*grad.nc(), gradient_input, gradient_input.nc(), gradient_input.nr()*gradient_input.nc()); }
+
+    // ----------------------------------------------------------------------------------------
+
+        void copy_tensor(
+            bool add_to,
+            tensor& dest,
+            size_t dest_k_offset,
+            const tensor& src,
+            size_t src_k_offset,
+            size_t count_k
+        );
+
     // ------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------
